@@ -1,0 +1,7 @@
+Primero hago click en conectar
+
+mando la url 'conectar'
+mando la url 'banner'
+mando la url 'comando' - estado password
+mando la url 'comando' - estado Doble_Factor
+mando la url 'comando' - estado ready
