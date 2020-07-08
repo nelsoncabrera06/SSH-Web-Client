@@ -1,0 +1,81 @@
+label {
+    padding-left:26px;
+    width:125px;
+    display:inline-block
+}
+
+.consola { 
+	font-family: Consolas;
+	font-size: 10pt; 
+	font-weight: 400; 
+	color: #ffffff; /* esto y white seria lo mismo */
+	background-color:black;	
+	overflow-y: scroll;
+	height: 500px; /* este tamaño 400px me encantó */
+}
+
+.form-inline {  
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.inputcomandos{
+	font-family: Consolas;
+	font-size: 10pt; 
+	font-weight: 400; 
+	color: #ffffff; /* esto y white seria lo mismo */
+	width:100%;
+	background-color:black;	
+}
+
+.textarea{
+	font-family: Consolas, monaco, monospace;
+	/*font-family: Consolas; */
+	font-size: 10pt;
+	color:white;
+	background-color:black;
+}
+
+/* aca la parte del menu desplegable: */
+.dropbtn {
+	background-color: #3498DB;
+	color: white;
+	padding: 16px;
+	font-size: 16px;
+	border: none;
+	cursor: pointer;
+}
+  
+.dropbtn:hover, .dropbtn:focus {
+	background-color: #2980B9;
+}
+  
+.dropdown {
+	position: absolute;
+	/*display: inline-block; */
+	float: right;
+}
+  
+.dropdown-content {
+	display: none;
+	position: absolute;
+	background-color: #f1f1f1;
+	min-width: 160px;
+	overflow: auto;
+	box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+	z-index: 1;
+}
+  
+  .dropdown-content a {
+	color: black;
+	padding: 12px 16px;
+	text-decoration: none;
+	display: block;
+  }
+  
+  .dropdown a:hover {background-color: #ddd;}
+  
+  .show {display: block;}
+
+/* FIN de la parte del menu desplegable: */
