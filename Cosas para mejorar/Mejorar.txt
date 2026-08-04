@@ -18,6 +18,14 @@ Cosas para mejorar - SSH-Web-Client
    socket.io sobre HTTP). Fine en localhost, no fine si esto sale de la
    maquina local.
 
+3.1 Sin verificacion de known_hosts
+   La app no lee ~/.ssh/known_hosts ni configura un hostVerifier en ssh2,
+   asi que acepta la clave de host que le presente el servidor sin
+   verificarla contra nada (a diferencia del ssh de terminal, que compara
+   contra known_hosts y avisa si la clave cambio). No protege contra un
+   servidor SSH suplantado. Habria que agregar un hostVerifier que lea y
+   compare contra known_hosts, igual que hace el cliente ssh real.
+
 4. [RESUELTO 2026-08-04] Codigo muerto en index.js
    Las rutas /banner y /password en Express guardaban req/res en variables
    globales (ped, resp) pero nunca se usaban despues. Se eliminaron esas
