@@ -23,5 +23,7 @@ Cosas para mejorar - SSH-Web-Client
    globales (ped, resp) pero nunca se usaban despues. Se eliminaron esas
    rutas y las variables sin uso (pass, ped, resp, cam).
 
-5. package.json incompleto
-   Falta "main", "scripts.start", licencia, etc. No bloquea nada, es prolijidad.
+5. [RESUELTO 2026-08-04] package.json incompleto
+   Faltaba "main", "scripts.start", licencia, y el nombre/descripcion
+   seguian siendo los del tutorial original de socket.io. Se completo
+   todo y ahora se puede levantar el server con "npm start".
