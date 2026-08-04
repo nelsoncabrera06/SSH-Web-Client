@@ -1,0 +1,26 @@
+Cosas para mejorar - SSH-Web-Client
+(notas del 2026-08-04, proyecto personal, no urgente)
+
+1. Sesion SSH global compartida
+   Se usa una sola instancia de Client (var conn = new Client()) y variables
+   globales (mistream, finalizar, ped) para TODOS los sockets conectados.
+   Si dos pestanas o dos usuarios usan la app al mismo tiempo, las sesiones
+   se pisan entre si. No es grave para uso personal en localhost, pero si en
+   algun momento la usa mas de una persona/pestana a la vez, se rompe.
+
+2. Sin autenticacion en la app web
+   Cualquiera que llegue al puerto 8080 puede abrir una sesion SSH a
+   cualquier host que indique. Aceptable en localhost, mas riesgoso si se
+   expone a una red o a internet.
+
+3. Sin HTTPS/TLS
+   Las contrasenas viajan del navegador al server en texto plano (via
+   socket.io sobre HTTP). Fine en localhost, no fine si esto sale de la
+   maquina local.
+
+4. Codigo muerto en index.js (esto es lo que vale la pena mejorar ahora)
+   Las rutas /banner y /password en Express guardan req/res en variables
+   globales (ped, resp) pero nunca se usan despues. Se pueden eliminar.
+
+5. package.json incompleto
+   Falta "main", "scripts.start", licencia, etc. No bloquea nada, es prolijidad.
