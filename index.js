@@ -54,7 +54,10 @@ http.listen(3000, () => {
 
 http.listen(PUERTO, () => {
 	console.log("Servidor activo - index.js");
-	IP_privada = networkInterfaces['Conexión de área local'][1].address; //esto con cable Ethernet - caso de PC Virtal en servidor
+	if (networkInterfaces['Conexión de área local'] && networkInterfaces['Conexión de área local'][1]){
+		IP_privada = networkInterfaces['Conexión de área local'][1].address; //esto con cable Ethernet - caso de PC Virtal en servidor
+		console.log("IP_privada : "+ IP_privada);
+	}
 	if (networkInterfaces['Ethernet 2']){
 		IP_privada_TECO = networkInterfaces['Ethernet 2'][2].address	// este caso es para VPN cuando hago HOME OFFICE
 		console.log("IP_privada_TECO : "+ IP_privada_TECO);
@@ -63,8 +66,6 @@ http.listen(PUERTO, () => {
 		IP_privada_WiFi = networkInterfaces['Wi-Fi'][1].address			// Wifi de mi casa
 		console.log("IP_privada_WiFi : "+ IP_privada_WiFi);
 	}
-	//IP_privada = networkInterfaces;
-	console.log(IP_privada);
 	console.log("PUERTO : "+ PUERTO);
 });
 
