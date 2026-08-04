@@ -96,26 +96,181 @@ function tiempo(){
 }
 
 var Client = require('ssh2').Client;
+var parseKey = require('ssh2').utils.parseKey;
 var readline = require('readline')
 const linealeida = require('readline-sync');
-var conn = new Client();
+var fs = require('fs');
+var SSHConfig = require('ssh-config');
+
+var conn; // cliente ssh2 de la conexion final activa (se asigna una vez conectado)
+var finalizar; // callback pendiente (password/passphrase/2FA) del hop que este autenticando en ese momento
+
+// Lee ~/.ssh/config de la maquina donde corre el server. A proposito no se hardcodea
+// nada de infraestructura especifica aca: todo sale de ese archivo local, en runtime.
+function leerConfigSSH(){
+	var rutaConfig = path.join(os.homedir(), '.ssh', 'config');
+	if (!fs.existsSync(rutaConfig)) return null;
+	try {
+		return SSHConfig.parse(fs.readFileSync(rutaConfig, 'utf8'));
+	} catch (e) {
+		console.log('No se pudo parsear ~/.ssh/config: ' + e.message);
+		return null;
+	}
+}
+
+function extraerJumpHost(computed){
+	if (computed.proxyjump) return computed.proxyjump.split(',')[0].split('@').pop();
+	if (computed.proxycommand) {
+		var match = computed.proxycommand.match(/-W\s*\S+\s+(\S+)\s*$/); // patron "ssh -q -W %h:%p <jumphost>"
+		if (match) return match[1];
+	}
+	return null;
+}
+
+function resolverHost(alias){
+	var config = leerConfigSSH();
+	var computed = config ? config.compute(alias, { ignoreCase: true }) : {};
+	var identityFiles = computed.identityfile || [];
+	var hostname = computed.hostname ? computed.hostname.replace(/%h/g, alias) : alias;
+	return {
+		hostname: hostname,
+		port: computed.port ? parseInt(computed.port, 10) : null,
+		user: computed.user || null,
+		identityFile: identityFiles.length ? identityFiles[0].replace(/^~/, os.homedir()) : null,
+		jumpHost: extraerJumpHost(computed)
+	};
+}
+
+function crearAuthHandler(usuario, identityFile, etiqueta){
+	var intentoPublicKey = false;
+	var keyBuffer = null;
+	if (identityFile) {
+		try { keyBuffer = fs.readFileSync(identityFile); }
+		catch (e) { console.log('[' + etiqueta + '] no se pudo leer ' + identityFile + ': ' + e.message); }
+	}
+
+	return function (methodsLeft, partialSuccess, callback) {
+		if (methodsLeft === null) return callback('none'); // primer intento, para que el server nos diga que metodos acepta
+
+		if (keyBuffer && !intentoPublicKey && methodsLeft.includes('publickey')) {
+			intentoPublicKey = true;
+			var parsed = parseKey(keyBuffer);
+			if (parsed instanceof Error) {
+				// la clave esta cifrada, pido la passphrase por la web
+				io.emit('password', '[' + etiqueta + '] Passphrase de ' + identityFile + ':');
+				finalizar = function (respuestas) {
+					var conPassphrase = parseKey(keyBuffer, respuestas[0]);
+					if (conPassphrase instanceof Error) {
+						io.emit('error', '[' + etiqueta + '] Passphrase incorrecta');
+						return callback(false);
+					}
+					callback({ type: 'publickey', username: usuario, key: conPassphrase });
+				};
+				return;
+			}
+			return callback({ type: 'publickey', username: usuario, key: parsed });
+		}
+
+		if (methodsLeft.includes('password')) {
+			io.emit('password', '[' + etiqueta + '] Password:');
+			finalizar = function (respuestas) {
+				callback({ type: 'password', username: usuario, password: respuestas[0] });
+			};
+			return;
+		}
+
+		if (methodsLeft.includes('keyboard-interactive')) return callback('keyboard-interactive');
+
+		return callback(false);
+	};
+}
+
+function crearClienteSSH(etiqueta){
+	var cliente = new Client();
+
+	cliente.on('banner', function (message) {
+		console.log('[' + etiqueta + '] banner: ' + message);
+		io.emit('banner', message);
+	});
+
+	cliente.on('keyboard-interactive', function (name, instructions, lang, prompts, finish) {
+		if (prompts.length > 0 && prompts[0].prompt.toLowerCase().includes('password')) {
+			io.emit('password', '[' + etiqueta + '] ' + prompts[0].prompt);
+			finalizar = finish;
+		} else if (prompts.length > 0 && prompts[0].prompt.includes('Doble_Factor:')) {
+			io.emit('Doble_Factor', '[' + etiqueta + '] ' + prompts[0].prompt);
+			finalizar = finish;
+		} else {
+			console.log(prompts);
+		}
+	});
+
+	return cliente;
+}
+
+// Conecta contra `alias` (que puede tener su propia entrada en ~/.ssh/config, con
+// jump host incluido). Si hace falta, primero abre una conexion recursiva al jump
+// host y tunelea (forwardOut) hacia el destino antes de autenticar ahi.
+function abrirConexion(alias, portOverride, userOverride, callback){
+	var resuelto = resolverHost(alias);
+	var usuarioFinal = userOverride || resuelto.user || os.userInfo().username;
+	var puertoFinal = portOverride || resuelto.port || 22;
+
+	function conectarCliente(sockOrigen){
+		var cliente = crearClienteSSH(alias);
+		var terminado = false;
+
+		cliente.on('ready', function () {
+			if (terminado) return;
+			terminado = true;
+			callback(null, cliente);
+		});
+		cliente.on('error', function (err) {
+			if (terminado) return;
+			terminado = true;
+			callback(err, null);
+		});
+
+		var opciones = {
+			host: resuelto.hostname,
+			port: puertoFinal,
+			username: usuarioFinal,
+			tryKeyboard: true,
+			readyTimeout: 40000,
+			authHandler: crearAuthHandler(usuarioFinal, resuelto.identityFile, alias)
+		};
+		if (sockOrigen) opciones.sock = sockOrigen;
+
+		cliente.connect(opciones);
+	}
+
+	if (resuelto.jumpHost) {
+		io.emit('conectar', 'saltando por ' + resuelto.jumpHost + '...');
+		abrirConexion(resuelto.jumpHost, null, null, function (err, clienteJump) {
+			if (err) return callback(err, null);
+			clienteJump.forwardOut('127.0.0.1', 0, resuelto.hostname, puertoFinal, function (err, stream) {
+				if (err) return callback(err, null);
+				conectarCliente(stream);
+			});
+		});
+	} else {
+		conectarCliente(null);
+	}
+}
 
 function conectarSSH(dato){
-	//console.log('function conectarSSH');
-
-	//console.log(dato); // esto esta bien
-	conn.connect({
-		host: dato.host, // mediadorured
-		port: dato.port,
-		username: dato.user,	// esto deberia cargarlo dede mi pag
-		//password: 'PASSWORD' // or provide a privateKey
-		tryKeyboard: true,
-		//debug: console.log,
-		readyTimeout: 40000 // entiendo que son 40 segundos
-	});
-	
 	io.emit('conectar', "conectando...");
-	
+
+	abrirConexion(dato.host, dato.port, dato.user, function (err, cliente) {
+		if (err) {
+			var mensaje = 'Client :: error: ' + (err && err.message ? err.message : err);
+			console.log(mensaje);
+			io.emit('error', mensaje);
+			return;
+		}
+		conn = cliente;
+		shell_connection();
+	});
 }
 
 function pasarelComando(dato){
@@ -142,53 +297,6 @@ function pasarelComando(dato){
 /* ------------------------------------
 	aca arranca la parte de SSH
    ------------------------------------ */
-   
-conn.on('banner', function (message, language){
-	console.log('Connection :: banner');
-	console.log(message);		
-	io.emit('banner', message);
-});
-
-var finalizar;
-conn.on('keyboard-interactive',function (name, instructions, lang, prompts, finish) { // esto sería en el plano
-	console.log('Connection :: keyboard-interactive');
-	if (prompts.length > 0 && prompts[0].prompt.toLowerCase().includes('password')) {
-		mensaje = prompts[0].prompt;
-		console.log(mensaje);
-		//devolucion = {evento:'keyboard-interactive', mensaje: mensaje};
-		//respuesta.end(JSON.stringify(devolucion));
-		//resp.end(JSON.stringify(devolucion));
-		io.emit('password', mensaje);
-		finalizar = finish;
-		//respuesta.end(password); // PROBANDO
-	} else if ( prompts.length > 0 && prompts[0].prompt.includes('Doble_Factor:')) {
-		mensaje = prompts[0].prompt;
-		console.log(mensaje)
-		//devolucion = {evento:'Doble_Factor', mensaje: mensaje};
-		//resp.end(JSON.stringify(devolucion));
-		io.emit('Doble_Factor', mensaje);
-		finalizar = finish;
-		
-	} else console.log(prompts);
-});
-
-
-conn.on('ready', function() {
-	mensaje = 'Client :: ready';
-	console.log(mensaje);
-	//io.emit('ready', mensaje);
-	//devolucion = {evento:'ready', mensaje: mensaje + '\n'};
-	//resp.end(JSON.stringify(devolucion)); todavía no voy a responderlo
-	shell_connection();
-});
-
-conn.on('error', function() {
-	mensaje = 'Client :: error';
-	console.log(mensaje);
-	io.emit('error', mensaje);
-	//devolucion = {evento:'error', mensaje: mensaje };
-	//resp.end(JSON.stringify(devolucion)); 
-});
 
 var mistream;
 

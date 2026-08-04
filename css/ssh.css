@@ -4,14 +4,10 @@ label {
     display:inline-block
 }
 
-.consola { 
-	font-family: Consolas;
-	font-size: 10pt; 
-	font-weight: 400; 
-	color: #ffffff; /* esto y white seria lo mismo */
-	background-color:black;	
-	overflow-y: scroll;
+.consola {
+	background-color: black;
 	height: 500px; /* este tamaño 400px me encantó */
+	padding: 4px;
 }
 
 .form-inline {  

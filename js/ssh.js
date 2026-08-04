@@ -1,13 +1,15 @@
-
-alert("el js anda!");
-
 var Origen = document.getElementById('equipoabuscar'); 		// este seria el origen
-var Destino = document.getElementById('areadetexto');			// este seria el destino
 var Comando = document.getElementById('comando');
 var host = document.getElementById('host');
 var port = document.getElementById('port');
 var user = document.getElementById('user');
 
+var term = new Terminal({ convertEol: true, disableStdin: true });
+var fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
+term.open(document.getElementById('areadetexto'));
+fitAddon.fit();
+window.addEventListener('resize', function () { fitAddon.fit(); });
 
 var estado = 'desconectado';
 
@@ -33,67 +35,62 @@ function enviarComan2(){
 };
 		
 socket.on('conectar', function(msg){
-	//Destino.textContent += msg + "\n";	// esta es la posta!!
-	Destino.textContent = msg + "\n";	
+	term.reset();
+	term.write(msg + "\n");
 	esperandoRespuesta.innerHTML = '';
 });
 
 socket.on('banner', function(msg){
-	//Destino.textContent += msg + "\n";	// esta es la posta!!
-	Destino.textContent = msg ;	// pero solo a modo de prueba
+	term.write(msg);
 	esperandoRespuesta.innerHTML = '';
 	estado = 'banner';
 });
 
 socket.on('password', function(msg){
-	//Destino.textContent += msg + "\n";	// esta es la posta!!
-	Destino.textContent += msg ;	// pero solo a modo de prueba
+	term.write(msg);
 	esperandoRespuesta.innerHTML = '';
-	estado = 'password'; 
+	estado = 'password';
 	Comando.style.background = "#505363"; //le cambio el color
 	Comando.setAttribute("type", "password"); // y que sea oculto
 	Comando.focus();
-	Comando.select();	
+	Comando.select();
 });
 
 socket.on('Doble_Factor', function(msg){
-	//Destino.textContent += msg + "\n";	// esta es la posta!!
-	Destino.textContent += msg + "\n";	// pero solo a modo de prueba
+	term.write(msg + "\n");
 	esperandoRespuesta.innerHTML = '';
 	estado = 'Doble_Factor';
 	Comando.style.background = "#505363"; //le cambio el color
 	Comando.setAttribute("type", "password"); // y que sea oculto
 	Comando.focus();
-	Comando.select();	
+	Comando.select();
 });
 
 socket.on('ready', function(msg){
-	Destino.textContent += msg ;	// pero solo a modo de prueba
+	term.write(msg);
 	esperandoRespuesta.innerHTML = '';
-	estado = 'ready'; 
-	//window.scrollTo(0, Comando.offsetTop); // esto scrollea la ventana entera anda bien!
-	Destino.scrollTo(0, Destino.scrollHeight); // esto anda perfecto solo scrollea el Destino element
+	estado = 'ready';
 	if (msg.match(/password/gi)) { // si no matchea con el signo $ la tengo que llamar de nuevo
 		Comando.style.background = "#505363"; //le cambio el color
-		Comando.setAttribute("type", "password"); // y que sea oculto 
+		Comando.setAttribute("type", "password"); // y que sea oculto
 	} else {
 		Comando.style.background = "black"; //le cambio el color a negro
 		Comando.setAttribute("type", "text"); // y que sea vea
 	}
-	
-	
+
+
 });
 
 socket.on('error', function(msg){
-	Destino.textContent += msg ;	// pero solo a modo de prueba
+	term.write(msg);
 	esperandoRespuesta.innerHTML = '';
-	estado = 'error'; 
+	estado = 'error';
 });
 
 socket.on('exit', function(msg){
-	Destino.textContent += msg ;	
+	term.write(msg);
 	esperandoRespuesta.innerHTML = '';
-	estado = 'exit'; 
+	estado = 'exit';
 });
 
 function conectar(){
@@ -130,10 +127,10 @@ function runScript(e) { // esto es si apreto enter
 		
 		switch (estado) {
 			case 'banner': // cuando estoy enviando el password
-				Destino.textContent += Comando.value.replace(/\S/g, '*') + "\n";
+				term.write(Comando.value.replace(/\S/g, '*') + "\n");
 				break;
 			case 'password':
-				Destino.textContent += Comando.value.replace(/\S/g, '*') + "\n";
+				term.write(Comando.value.replace(/\S/g, '*') + "\n");
 				break;
 			default:
 				break;

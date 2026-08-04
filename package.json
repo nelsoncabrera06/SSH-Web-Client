@@ -11,6 +11,7 @@
     "express": "^4.17.1",
     "readline-sync": "^1.4.10",
     "socket.io": "^4.8.3",
+    "ssh-config": "^5.2.0",
     "ssh2": "^1.17.0"
   }
 }

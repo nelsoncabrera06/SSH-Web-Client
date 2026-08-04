@@ -27,3 +27,21 @@ Cosas para mejorar - SSH-Web-Client
    Faltaba "main", "scripts.start", licencia, y el nombre/descripcion
    seguian siendo los del tutorial original de socket.io. Se completo
    todo y ahora se puede levantar el server con "npm start".
+
+6. [RESUELTO 2026-08-04] Terminal ilegible en la web
+   La salida del shell remoto se volcaba cruda en un <pre>, mostrando los
+   codigos de escape ANSI en vez de interpretarlos (colores, cursor, etc).
+   Se reemplazo por xterm.js, que renderiza una terminal de verdad.
+
+7. [RESUELTO 2026-08-04] Solo soportaba keyboard-interactive
+   La app solo intentaba autenticarse con keyboard-interactive, asi que
+   fallaba directo ("All configured authentication methods failed") contra
+   cualquier server que no ofreciera ese metodo (la mayoria). Ahora soporta
+   tambien password y publickey.
+
+8. [RESUELTO 2026-08-04] Sin soporte de jump host
+   No se podia llegar a hosts que solo son alcanzables via un jump host
+   (ProxyCommand/ProxyJump en ~/.ssh/config). Ahora la app lee el
+   ~/.ssh/config de la maquina en runtime (nada de esto se hardcodea en el
+   codigo, para no subir infraestructura propia a este repo publico) y, si
+   corresponde, salta primero por el jump host antes de conectar al destino.
