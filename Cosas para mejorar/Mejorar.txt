@@ -18,9 +18,10 @@ Cosas para mejorar - SSH-Web-Client
    socket.io sobre HTTP). Fine en localhost, no fine si esto sale de la
    maquina local.
 
-4. Codigo muerto en index.js (esto es lo que vale la pena mejorar ahora)
-   Las rutas /banner y /password en Express guardan req/res en variables
-   globales (ped, resp) pero nunca se usan despues. Se pueden eliminar.
+4. [RESUELTO 2026-08-04] Codigo muerto en index.js
+   Las rutas /banner y /password en Express guardaban req/res en variables
+   globales (ped, resp) pero nunca se usaban despues. Se eliminaron esas
+   rutas y las variables sin uso (pass, ped, resp, cam).
 
 5. package.json incompleto
    Falta "main", "scripts.start", licencia, etc. No bloquea nada, es prolijidad.

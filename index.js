@@ -23,26 +23,10 @@ app.get('/', (req, res) => {
   //res.sendFile(__dirname + '/public/ssh.html');
 });
 
-var pass;
-var ped, resp, cam;
-
 app.post('/conectar', function (req, res) {
 	console.log('/conectar');
 	//res.send('about');
 	conectarSSH(req,res);
-});
-
-
-app.post('/banner', function (req, res) { 
-	console.log('/banner');
-	ped = req;
-	resp = res;
-});
-
-app.post('/password', function (req, res) { 
-	console.log('/password');
-	ped = req;
-	resp = res;
 });
 
 /*
