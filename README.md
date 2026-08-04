@@ -43,8 +43,6 @@ autenticación propia en la app web ni corre sobre HTTPS, así que no está
 pensado para exponerse en una red compartida o en internet tal cual está.
 Ver `Cosas para mejorar/Mejorar.txt` para el detalle de mejoras pendientes.
 
-## get fun!
-
 https://youtu.be/s2HfdZp7S-w?t=9
 
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/s2HfdZp7S-w/0.jpg)](https://www.youtube.com/watch?v=s2HfdZp7S-w)
